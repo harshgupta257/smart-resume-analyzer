@@ -80,8 +80,7 @@ let selectedFile = null;
 
 // ─── FILE UPLOAD HANDLING ─────────────────────────────────────────────────────
 
-// Click on drop zone
-dropZone.addEventListener("click", () => fileInput.click());
+// Keyboard support for drop zone (click handled natively by the invisible file input)
 dropZone.addEventListener("keydown", (e) => {
   if (e.key === "Enter" || e.key === " ") fileInput.click();
 });
