@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Resume Analyzer | AI-Powered Resume Scoring</title>
+  <meta name="description" content="Upload your resume and paste a job description to get an instant AI-powered compatibility score, skill gap analysis, and personalized improvement suggestions." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── BACKGROUND PARTICLES ── -->
+  <div class="bg-particles" aria-hidden="true">
+    <div class="particle p1"></div>
+    <div class="particle p2"></div>
+    <div class="particle p3"></div>
+    <div class="particle p4"></div>
+    <div class="particle p5"></div>
+  </div>
+
+  <!-- ── NAVBAR ── -->
+  <nav class="navbar" role="navigation" aria-label="Main navigation">
+    <div class="nav-logo">
+      <div class="nav-logo-icon" aria-hidden="true">⚡</div>
+      <span class="nav-logo-text">ResumeAI</span>
+    </div>
+    <div class="nav-badge">
+      <span class="badge-dot" aria-hidden="true"></span>
+      API Live
+    </div>
+  </nav>
+
+  <!-- ── HERO ── -->
+  <header class="hero" role="banner">
+    <div class="hero-content">
+      <div class="hero-tag" aria-label="Feature badge">
+        <span>✦</span> NLP-Powered Analysis
+      </div>
+      <h1 class="hero-title">
+        Smart <span class="gradient-text">Resume</span><br/>Analyzer
+      </h1>
+      <p class="hero-subtitle">
+        Upload your resume and paste a job description.<br/>
+        Get an instant compatibility score, skill gap analysis,<br/>and actionable improvement tips.
+      </p>
+      <div class="hero-stats" aria-label="App statistics">
+        <div class="stat">
+          <span class="stat-num">200+</span>
+          <span class="stat-label">Skills Tracked</span>
+        </div>
+        <div class="stat-divider" aria-hidden="true"></div>
+        <div class="stat">
+          <span class="stat-num">NLP</span>
+          <span class="stat-label">Powered Engine</span>
+        </div>
+        <div class="stat-divider" aria-hidden="true"></div>
+        <div class="stat">
+          <span class="stat-num">Free</span>
+          <span class="stat-label">No Signup</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-scroll-hint" aria-hidden="true">
+      <span>Scroll to analyze</span>
+      <div class="scroll-arrow">↓</div>
+    </div>
+  </header>
+
+  <!-- ── MAIN ANALYZER SECTION ── -->
+  <main id="main-content" class="analyzer-section" role="main">
+    <div class="container">
+
+      <!-- INPUT FORM -->
+      <form class="input-grid" id="analyzeForm" novalidate aria-label="Resume analysis form">
+
+        <!-- LEFT: PDF UPLOAD -->
+        <div class="card upload-card">
+          <div class="card-header">
+            <div class="card-icon upload-icon" aria-hidden="true">📄</div>
+            <div>
+              <h2 class="card-title">Upload Resume</h2>
+              <p class="card-desc">PDF format only</p>
+            </div>
+          </div>
+
+          <div
+            class="drop-zone"
+            id="dropZone"
+            role="button"
+            tabindex="0"
+            aria-label="Upload resume PDF — click or drag and drop"
+            aria-describedby="drop-hint"
+          >
+            <div class="drop-icon" aria-hidden="true">📁</div>
+            <p class="drop-title">Drag &amp; Drop your resume</p>
+            <p class="drop-hint" id="drop-hint">or click to browse · PDF only</p>
+            <input
+              type="file"
+              id="resumeFile"
+              name="resume"
+              accept=".pdf"
+              class="file-input"
+              aria-label="Choose PDF resume file"
+              required
+            />
+          </div>
+
+          <!-- File preview -->
+          <div class="file-preview hidden" id="filePreview" aria-live="polite">
+            <div class="file-info">
+              <span class="file-icon" aria-hidden="true">✅</span>
+              <div>
+                <p class="file-name" id="fileName">resume.pdf</p>
+                <p class="file-size" id="fileSize">0 KB</p>
+              </div>
+              <button
+                type="button"
+                class="file-remove"
+                id="fileRemove"
+                aria-label="Remove selected file"
+                title="Remove file"
+              >✕</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: JOB DESCRIPTION -->
+        <div class="card jd-card">
+          <div class="card-header">
+            <div class="card-icon jd-icon" aria-hidden="true">💼</div>
+            <div>
+              <h2 class="card-title">Job Description</h2>
+              <p class="card-desc">Paste the full JD below</p>
+            </div>
+          </div>
+
+          <textarea
+            id="jobDescription"
+            name="job_description"
+            class="jd-textarea"
+            placeholder="Paste the complete job description here...
+
+Example:
+We are looking for a Python Backend Developer with experience in FastAPI, PostgreSQL, Docker, and AWS. The candidate should have strong knowledge of REST APIs, microservices, and CI/CD pipelines..."
+            aria-label="Job description text"
+            aria-describedby="jd-counter"
+            required
+          ></textarea>
+          <div class="jd-footer">
+            <span class="jd-counter" id="jd-counter" aria-live="polite">0 words</span>
+            <button
+              type="button"
+              class="btn-clear"
+              id="clearJD"
+              aria-label="Clear job description"
+            >Clear</button>
+          </div>
+        </div>
+
+        <!-- ANALYZE BUTTON (full width) -->
+        <div class="btn-row">
+          <button
+            type="submit"
+            class="btn-analyze"
+            id="analyzeBtn"
+            aria-label="Analyze resume against job description"
+          >
+            <span class="btn-icon" aria-hidden="true">⚡</span>
+            <span class="btn-text">Analyze Resume</span>
+            <span class="btn-shine" aria-hidden="true"></span>
+          </button>
+        </div>
+
+      </form>
+
+      <!-- ERROR BANNER -->
+      <div class="error-banner hidden" id="errorBanner" role="alert" aria-live="assertive">
+        <span class="error-icon" aria-hidden="true">⚠️</span>
+        <span id="errorMessage">Something went wrong.</span>
+        <button class="error-close" id="errorClose" aria-label="Dismiss error">✕</button>
+      </div>
+
+      <!-- LOADING STATE -->
+      <div class="loading-state hidden" id="loadingState" aria-live="polite" aria-busy="true">
+        <div class="loading-ring" aria-hidden="true">
+          <div></div><div></div><div></div><div></div>
+        </div>
+        <div class="loading-text">
+          <p class="loading-title">Analyzing your resume…</p>
+          <p class="loading-sub" id="loadingStep">Parsing PDF content</p>
+        </div>
+      </div>
+
+      <!-- ── RESULTS SECTION ── -->
+      <section class="results hidden" id="resultsSection" aria-label="Analysis results" aria-live="polite">
+
+        <!-- SCORE CARD -->
+        <div class="score-section">
+          <div class="score-card" id="scoreCard">
+            <div class="score-ring-wrapper" aria-label="Match score visualization">
+              <svg class="score-ring" viewBox="0 0 160 160" aria-hidden="true">
+                <circle class="ring-bg" cx="80" cy="80" r="64"/>
+                <circle class="ring-fill" id="ringFill" cx="80" cy="80" r="64"
+                  stroke-dasharray="402.12"
+                  stroke-dashoffset="402.12"
+                />
+              </svg>
+              <div class="score-center">
+                <div class="score-number" id="scoreNumber" aria-label="Score">0</div>
+                <div class="score-percent">%</div>
+              </div>
+            </div>
+            <div class="score-details">
+              <div class="score-label" id="scoreLabel">Calculating…</div>
+              <div class="score-meta" id="scoreMeta">Match score</div>
+              <div class="score-breakdown" id="scoreBreakdown">
+                <div class="breakdown-item">
+                  <span class="breakdown-dot matched" aria-hidden="true"></span>
+                  <span id="matchedCount">0</span> matched skills
+                </div>
+                <div class="breakdown-item">
+                  <span class="breakdown-dot missing" aria-hidden="true"></span>
+                  <span id="missingCount">0</span> missing skills
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SKILLS GRID -->
+        <div class="skills-grid">
+
+          <!-- Matched Skills -->
+          <div class="card skills-card" id="matchedSkillsCard">
+            <div class="skills-card-header">
+              <div class="skills-header-icon matched-icon" aria-hidden="true">✅</div>
+              <h3 class="skills-card-title">Matched Skills</h3>
+              <span class="skills-count matched-count" id="matchedBadge" aria-label="Matched skills count">0</span>
+            </div>
+            <div class="skills-list" id="matchedSkillsList" role="list" aria-label="Skills found in resume and job description">
+              <!-- chips injected by JS -->
+            </div>
+          </div>
+
+          <!-- Missing Skills -->
+          <div class="card skills-card" id="missingSkillsCard">
+            <div class="skills-card-header">
+              <div class="skills-header-icon missing-icon" aria-hidden="true">❌</div>
+              <h3 class="skills-card-title">Missing Skills</h3>
+              <span class="skills-count missing-count" id="missingBadge" aria-label="Missing skills count">0</span>
+            </div>
+            <div class="skills-list" id="missingSkillsList" role="list" aria-label="Skills in job description but not found in resume">
+              <!-- chips injected by JS -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RESUME SKILLS ROW -->
+        <div class="card full-card" id="resumeSkillsCard">
+          <div class="card-header-inline">
+            <h3 class="card-title">Your Resume Skills</h3>
+            <span class="card-subtitle">All skills detected in your uploaded resume</span>
+          </div>
+          <div class="resume-skills-sections">
+            <div class="rs-section">
+              <div class="rs-label">
+                <span aria-hidden="true">💻</span> Technical Skills
+              </div>
+              <div class="skills-list" id="resumeTechList" role="list" aria-label="Technical skills from resume"></div>
+            </div>
+            <div class="rs-section">
+              <div class="rs-label">
+                <span aria-hidden="true">🤝</span> Soft Skills
+              </div>
+              <div class="skills-list" id="resumeSoftList" role="list" aria-label="Soft skills from resume"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTIONS + SUGGESTIONS -->
+        <div class="bottom-grid">
+
+          <!-- Resume Sections Found -->
+          <div class="card" id="sectionsCard">
+            <div class="card-header-inline">
+              <h3 class="card-title">Resume Sections</h3>
+              <span class="card-subtitle">Detected in your PDF</span>
+            </div>
+            <div class="sections-list" id="sectionsList" role="list" aria-label="Resume sections detected"></div>
+          </div>
+
+          <!-- Suggestions -->
+          <div class="card suggestions-card" id="suggestionsCard">
+            <div class="card-header-inline">
+              <h3 class="card-title">💡 Improvement Tips</h3>
+              <span class="card-subtitle">Personalized suggestions</span>
+            </div>
+            <ol class="suggestions-list" id="suggestionsList" aria-label="Improvement suggestions"></ol>
+          </div>
+
+        </div>
+
+        <!-- RE-ANALYZE BUTTON -->
+        <div class="reanalyze-row">
+          <button
+            type="button"
+            class="btn-reanalyze"
+            id="reanalyzeBtn"
+            aria-label="Analyze a different resume"
+          >
+            ↩ Analyze Another Resume
+          </button>
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <!-- ── FOOTER ── -->
+  <footer class="footer" role="contentinfo">
+    <div class="footer-content">
+      <p>Built with <span aria-label="love">❤️</span> using <strong>FastAPI</strong> · <strong>Python NLP</strong> · <strong>HTML/CSS/JS</strong></p>
+      <p class="footer-sub">Smart Resume Analyzer — Open Source Portfolio Project</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
