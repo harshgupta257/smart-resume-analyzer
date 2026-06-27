@@ -4,10 +4,8 @@
  */
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
-// 🔧 DEPLOYMENT: Replace the URL below with your Render URL after deploying.
-//    Example: "https://smart-resume-analyzer-api.onrender.com"
-//    For local development, keep it as: "http://127.0.0.1:8000"
-const API_BASE = "https://REPLACE_WITH_YOUR_RENDER_URL.onrender.com";
+// 🚀 Deployed backend on Render
+const API_BASE = "https://smart-resume-analyzer-1fhc.onrender.com";
 const ANALYZE_URL = `${API_BASE}/analyze`;
 
 // ─── DOM REFS ─────────────────────────────────────────────────────────────────
