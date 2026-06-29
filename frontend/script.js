@@ -56,27 +56,7 @@ const reanalyzeBtn  = document.getElementById("reanalyzeBtn");
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let selectedFile = null;
 
-// ─── SVG GRADIENT INJECTION ───────────────────────────────────────────────────
-// Inject SVG defs for the score ring gradient
-(function injectSvgGradient() {
-  const svgNS = "http://www.w3.org/2000/svg";
-  const svg = document.querySelector(".score-ring");
-  if (!svg) return;
-  const defs = document.createElementNS(svgNS, "defs");
-  const grad = document.createElementNS(svgNS, "linearGradient");
-  grad.setAttribute("id", "scoreGradient");
-  grad.setAttribute("x1", "0%"); grad.setAttribute("y1", "0%");
-  grad.setAttribute("x2", "100%"); grad.setAttribute("y2", "100%");
-  const stop1 = document.createElementNS(svgNS, "stop");
-  stop1.setAttribute("offset", "0%");
-  stop1.setAttribute("stop-color", "#8b5cf6");
-  const stop2 = document.createElementNS(svgNS, "stop");
-  stop2.setAttribute("offset", "100%");
-  stop2.setAttribute("stop-color", "#22d3ee");
-  grad.appendChild(stop1); grad.appendChild(stop2);
-  defs.appendChild(grad);
-  svg.prepend(defs);
-})();
+// SVG gradient already defined inline in HTML
 
 // ─── FILE UPLOAD HANDLING ─────────────────────────────────────────────────────
 
@@ -232,7 +212,7 @@ form.addEventListener("submit", async (e) => {
     showError(msg);
   } finally {
     analyzeBtn.disabled = false;
-    btnText.textContent = "Analyze Resume";
+    btnText.textContent = "Run Analysis";
   }
 });
 
@@ -269,14 +249,20 @@ function renderResults(data) {
   renderSuggestions(data.suggestions);
 }
 
-// Animate score number + ring
+// Animate score number + bar + ring
 function animateScore(targetScore, label, colorClass) {
-  const circumference = 402.12; // 2π × 64
+  const circumference = 301.59; // 2π × 48 (new ring radius)
   const duration = 1500;
   const start = performance.now();
 
+  // Set verdict label
   scoreLabel.textContent = label;
-  scoreLabel.className = `score-label ${colorClass}`;
+  scoreLabel.className = `rsp-verdict ${colorClass}`;
+
+  // Score bar element
+  const scoreBar = document.getElementById("scoreBar");
+  // Ring pct text
+  const ringPct = document.getElementById("ringPct");
 
   function step(now) {
     const elapsed = now - start;
@@ -285,7 +271,12 @@ function animateScore(targetScore, label, colorClass) {
 
     const current = Math.round(eased * targetScore);
     scoreNumber.textContent = current;
+    if (ringPct) ringPct.textContent = `${current}%`;
 
+    // Animate score bar
+    if (scoreBar) scoreBar.style.width = `${eased * targetScore}%`;
+
+    // Animate ring
     const offset = circumference - (eased * targetScore / 100) * circumference;
     ringFill.style.strokeDashoffset = offset;
 
@@ -321,10 +312,6 @@ function renderChips(container, skills, chipClass, emptyMsg) {
 // Render section items
 function renderSections(sections) {
   sectionsList.innerHTML = "";
-  const sectionIcons = {
-    experience: "💼", education: "🎓", skills: "⚙️",
-    projects: "🚀", certifications: "🏆", summary: "👤", other: "📄",
-  };
   if (!sections || sections.length === 0) {
     sectionsList.innerHTML = `<span class="chip chip-empty">No sections detected.</span>`;
     return;
@@ -335,8 +322,8 @@ function renderSections(sections) {
     item.style.animationDelay = `${i * 60}ms`;
     item.setAttribute("role", "listitem");
     item.innerHTML = `
-      <span class="section-check">✓</span>
-      <span>${sectionIcons[sec] || "📄"} ${sec.charAt(0).toUpperCase() + sec.slice(1)}</span>
+      <span class="section-check">OK</span>
+      <span>${sec.charAt(0).toUpperCase() + sec.slice(1)}</span>
     `;
     sectionsList.appendChild(item);
   });
@@ -373,7 +360,6 @@ reanalyzeBtn.addEventListener("click", () => {
   jdCounter.textContent = "0 words";
   // Scroll to top
   window.scrollTo({ top: 0, behavior: "smooth" });
-  setTimeout(() => document.querySelector(".analyzer-section").scrollIntoView({ behavior: "smooth" }), 300);
 });
 
 // ─── SMOOTH SCROLL ON LOAD ────────────────────────────────────────────────────
