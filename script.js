@@ -1,14 +1,14 @@
 /**
- * Smart Resume Analyzer — Frontend Script
- * Handles: drag-and-drop upload, API calls, animated results rendering
+ * ResumeAI — Script
+ * Auros design system edition
+ * Handles: particle sphere, drag-and-drop, API calls, animated results
  */
 
-// ─── CONFIG ──────────────────────────────────────────────────────────────────
-// 🚀 Deployed backend on Render
-const API_BASE = "https://smart-resume-analyzer-1fhc.onrender.com";
+// ─── CONFIG ───────────────────────────────────────────────
+const API_BASE   = "https://smart-resume-analyzer-1fhc.onrender.com";
 const ANALYZE_URL = `${API_BASE}/analyze`;
 
-// ─── DOM REFS ─────────────────────────────────────────────────────────────────
+// ─── DOM REFS ─────────────────────────────────────────────
 const form          = document.getElementById("analyzeForm");
 const dropZone      = document.getElementById("dropZone");
 const fileInput     = document.getElementById("resumeFile");
@@ -31,43 +31,157 @@ const errorClose    = document.getElementById("errorClose");
 const loadingState  = document.getElementById("loadingState");
 const loadingStep   = document.getElementById("loadingStep");
 
-const resultsSection= document.getElementById("resultsSection");
+const resultsSection = document.getElementById("resultsSection");
 
 // Score elements
 const scoreNumber   = document.getElementById("scoreNumber");
 const scoreLabel    = document.getElementById("scoreLabel");
 const scoreMeta     = document.getElementById("scoreMeta");
 const ringFill      = document.getElementById("ringFill");
+const ringPct       = document.getElementById("ringPct");
 const matchedCount  = document.getElementById("matchedCount");
 const missingCount  = document.getElementById("missingCount");
 const matchedBadge  = document.getElementById("matchedBadge");
 const missingBadge  = document.getElementById("missingBadge");
 
 // Skills lists
-const matchedList   = document.getElementById("matchedSkillsList");
-const missingList   = document.getElementById("missingSkillsList");
-const resumeTechList= document.getElementById("resumeTechList");
-const resumeSoftList= document.getElementById("resumeSoftList");
-const sectionsList  = document.getElementById("sectionsList");
+const matchedList    = document.getElementById("matchedSkillsList");
+const missingList    = document.getElementById("missingSkillsList");
+const resumeTechList = document.getElementById("resumeTechList");
+const resumeSoftList = document.getElementById("resumeSoftList");
+const sectionsList   = document.getElementById("sectionsList");
 const suggestionsList= document.getElementById("suggestionsList");
 
 const reanalyzeBtn  = document.getElementById("reanalyzeBtn");
 
-// ─── STATE ────────────────────────────────────────────────────────────────────
+// ─── STATE ────────────────────────────────────────────────
 let selectedFile = null;
 
-// SVG gradient already defined inline in HTML
+// ═══════════════════════════════════════════════════════════
+//  PARTICLE SPHERE — 3D rotating bioluminescent orb
+// ═══════════════════════════════════════════════════════════
+(function initParticleSphere() {
+  const canvas = document.getElementById("particleSphere");
+  if (!canvas) return;
 
-// ─── FILE UPLOAD HANDLING ─────────────────────────────────────────────────────
+  const ctx = canvas.getContext("2d");
+  const N   = 700;
 
-// Keyboard support for drop zone (click handled natively by the invisible file input)
-dropZone.addEventListener("keydown", (e) => {
+  // Auros bioluminescent palette
+  const COLORS = [
+    "#00827c", "#00827c", "#00827c", // teal dominant
+    "#cbfffc", "#cbfffc",             // pale aqua
+    "#edfffe",                        // mist
+    "#ffffff",                        // white
+    "#fde9ff",                        // lavender phosphor accent
+  ];
+
+  let W, H, particles = [];
+  let angle = 0;
+  let raf;
+
+  function resize() {
+    W = canvas.width  = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
+  }
+
+  function buildParticles() {
+    particles = [];
+    for (let i = 0; i < N; i++) {
+      // Uniform distribution on sphere surface
+      const u = Math.random();
+      const v = Math.random();
+      const theta = Math.acos(2 * u - 1);
+      const phi   = 2 * Math.PI * v;
+      particles.push({
+        theta,
+        phi,
+        size:  Math.random() * 1.8 + 0.4,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      });
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Sphere center — right side of canvas
+    const cx = W * 0.74;
+    const cy = H * 0.50;
+    const R  = Math.min(W, H) * 0.30;
+
+    // Project particles & sort by Z for painter's algorithm
+    const pts = particles.map(p => {
+      const sinT = Math.sin(p.theta);
+      const cosT = Math.cos(p.theta);
+      const sinP = Math.sin(p.phi + angle);
+      const cosP = Math.cos(p.phi + angle);
+
+      return {
+        px:    cx + R * sinT * cosP,
+        py:    cy + R * sinT * sinP,
+        pz:    R  * cosT,
+        size:  p.size,
+        color: p.color,
+      };
+    }).sort((a, b) => a.pz - b.pz);   // back-to-front
+
+    for (const p of pts) {
+      // Depth: 0 (back) → 1 (front)
+      const depth = (p.pz + R) / (2 * R);
+      if (depth < 0.04) continue;
+
+      const alpha  = 0.12 + depth * 0.88;
+      const radius = p.size * (0.3 + depth * 0.7);
+
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle   = p.color;
+      ctx.beginPath();
+      ctx.arc(p.px, p.py, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+    angle += 0.0028;
+    raf = requestAnimationFrame(draw);
+  }
+
+  function start() {
+    resize();
+    buildParticles();
+    draw();
+  }
+
+  // Pause when not visible (perf)
+  const observer = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) {
+      if (!raf) draw();
+    } else {
+      cancelAnimationFrame(raf);
+      raf = null;
+    }
+  });
+  observer.observe(canvas);
+
+  window.addEventListener("resize", () => {
+    resize();
+  }, { passive: true });
+
+  start();
+})();
+
+// ═══════════════════════════════════════════════════════════
+//  FILE UPLOAD
+// ═══════════════════════════════════════════════════════════
+
+// Keyboard support (click handled natively by the invisible file input)
+dropZone.addEventListener("keydown", e => {
   if (e.key === "Enter" || e.key === " ") fileInput.click();
 });
 
 // Drag events
 ["dragenter", "dragover"].forEach(evt =>
-  dropZone.addEventListener(evt, (e) => {
+  dropZone.addEventListener(evt, e => {
     e.preventDefault();
     dropZone.classList.add("dragover");
   })
@@ -75,13 +189,11 @@ dropZone.addEventListener("keydown", (e) => {
 ["dragleave", "dragend", "drop"].forEach(evt =>
   dropZone.addEventListener(evt, () => dropZone.classList.remove("dragover"))
 );
-dropZone.addEventListener("drop", (e) => {
+dropZone.addEventListener("drop", e => {
   e.preventDefault();
-  const files = e.dataTransfer.files;
-  if (files.length > 0) handleFileSelect(files[0]);
+  if (e.dataTransfer.files.length > 0) handleFileSelect(e.dataTransfer.files[0]);
 });
 
-// File input change
 fileInput.addEventListener("change", () => {
   if (fileInput.files.length > 0) handleFileSelect(fileInput.files[0]);
 });
@@ -91,14 +203,14 @@ function handleFileSelect(file) {
     showError("Please select a PDF file.");
     return;
   }
-  selectedFile = file;
+  selectedFile   = file;
   fileName.textContent = file.name;
   fileSize.textContent = formatBytes(file.size);
   filePreview.classList.remove("hidden");
   hideError();
 }
 
-fileRemove.addEventListener("click", (e) => {
+fileRemove.addEventListener("click", e => {
   e.stopPropagation();
   selectedFile = null;
   fileInput.value = "";
@@ -106,23 +218,23 @@ fileRemove.addEventListener("click", (e) => {
 });
 
 function formatBytes(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024)            return `${bytes} B`;
+  if (bytes < 1024 * 1024)    return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// ─── JD WORD COUNTER ─────────────────────────────────────────────────────────
+// ─── JD WORD COUNTER ──────────────────────────────────────
 jdTextarea.addEventListener("input", () => {
   const words = jdTextarea.value.trim().split(/\s+/).filter(Boolean).length;
-  jdCounter.textContent = `${words} word${words !== 1 ? "s" : ""}`;
+  jdCounter.textContent = `${words} WORD${words !== 1 ? "S" : ""}`;
 });
 
 clearJD.addEventListener("click", () => {
   jdTextarea.value = "";
-  jdCounter.textContent = "0 words";
+  jdCounter.textContent = "0 WORDS";
 });
 
-// ─── ERROR HANDLING ───────────────────────────────────────────────────────────
+// ─── ERROR ────────────────────────────────────────────────
 function showError(msg) {
   errorMsg.textContent = msg;
   errorBanner.classList.remove("hidden");
@@ -133,8 +245,8 @@ function hideError() {
 }
 errorClose.addEventListener("click", hideError);
 
-// ─── LOADING STEPS ────────────────────────────────────────────────────────────
-const loadingSteps = [
+// ─── LOADING STEPS ────────────────────────────────────────
+const STEPS = [
   "Parsing PDF content…",
   "Extracting keywords & skills…",
   "Comparing with job description…",
@@ -146,10 +258,10 @@ let stepInterval = null;
 function startLoading() {
   loadingState.classList.remove("hidden");
   let i = 0;
-  loadingStep.textContent = loadingSteps[0];
+  loadingStep.textContent = STEPS[0];
   stepInterval = setInterval(() => {
-    i = (i + 1) % loadingSteps.length;
-    loadingStep.textContent = loadingSteps[i];
+    i = (i + 1) % STEPS.length;
+    loadingStep.textContent = STEPS[i];
   }, 900);
 }
 function stopLoading() {
@@ -157,12 +269,11 @@ function stopLoading() {
   loadingState.classList.add("hidden");
 }
 
-// ─── FORM SUBMIT ──────────────────────────────────────────────────────────────
-form.addEventListener("submit", async (e) => {
+// ─── FORM SUBMIT ──────────────────────────────────────────
+form.addEventListener("submit", async e => {
   e.preventDefault();
   hideError();
 
-  // Validate
   if (!selectedFile) {
     showError("Please upload your resume PDF.");
     return;
@@ -173,28 +284,23 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
-  // UI: enter loading state
   analyzeBtn.disabled = true;
   btnText.textContent = "Analyzing…";
   resultsSection.classList.add("hidden");
   startLoading();
 
-  // Build FormData
   const formData = new FormData();
   formData.append("resume", selectedFile);
   formData.append("job_description", jd);
 
   try {
-    const res = await fetch(ANALYZE_URL, {
-      method: "POST",
-      body: formData,
-    });
+    const res = await fetch(ANALYZE_URL, { method: "POST", body: formData });
 
     if (!res.ok) {
       let detail = `Server error (${res.status})`;
       try {
-        const errData = await res.json();
-        detail = errData.detail || detail;
+        const err = await res.json();
+        detail = err.detail || detail;
       } catch (_) {}
       throw new Error(detail);
     }
@@ -207,7 +313,7 @@ form.addEventListener("submit", async (e) => {
     stopLoading();
     let msg = err.message || "Failed to connect to the API.";
     if (msg.includes("fetch") || msg.includes("network") || msg.includes("Failed to fetch")) {
-      msg = "Cannot connect to the API. Make sure the backend server is running on http://127.0.0.1:8000";
+      msg = "Cannot connect to the API. The backend may be starting up — try again in 30 seconds.";
     }
     showError(msg);
   } finally {
@@ -216,69 +322,55 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
-// ─── RENDER RESULTS ───────────────────────────────────────────────────────────
+// ─── RENDER RESULTS ───────────────────────────────────────
 function renderResults(data) {
-  // Scroll to results
   resultsSection.classList.remove("hidden");
   setTimeout(() => {
     resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
   }, 100);
 
-  // Score ring animation
+  // Animate score
   animateScore(data.score, data.score_label, data.score_color);
 
-  // Counts
-  matchedCount.textContent = data.matched_skills.length;
-  missingCount.textContent = data.missing_skills.length;
-  matchedBadge.textContent = data.matched_skills.length;
-  missingBadge.textContent = data.missing_skills.length;
+  // Counts + badges
+  matchedCount.textContent  = data.matched_skills.length;
+  missingCount.textContent  = data.missing_skills.length;
+  matchedBadge.textContent  = data.matched_skills.length;
+  missingBadge.textContent  = data.missing_skills.length;
 
   // Meta
   scoreMeta.textContent = `Resume: ${data.resume_word_count} words · JD: ${data.jd_word_count} words`;
 
-  // Skills chips
-  renderChips(matchedList, data.matched_skills, "chip-matched", "No matched skills found.");
-  renderChips(missingList, data.missing_skills, "chip-missing", "🎉 No missing skills — great match!");
-  renderChips(resumeTechList, data.resume_tech_skills, "chip-tech", "No technical skills detected.");
-  renderChips(resumeSoftList, data.resume_soft_skills, "chip-soft", "No soft skills detected.");
+  // Chips
+  renderChips(matchedList,    data.matched_skills,    "chip-matched", "No matched skills found.");
+  renderChips(missingList,    data.missing_skills,    "chip-missing", "🎉 No missing skills — perfect match!");
+  renderChips(resumeTechList, data.resume_tech_skills,"chip-tech",    "No technical skills detected.");
+  renderChips(resumeSoftList, data.resume_soft_skills,"chip-soft",    "No soft skills detected.");
 
-  // Resume sections
   renderSections(data.sections_found);
-
-  // Suggestions
   renderSuggestions(data.suggestions);
 }
 
-// Animate score number + bar + ring
-function animateScore(targetScore, label, colorClass) {
-  const circumference = 301.59; // 2π × 48 (new ring radius)
-  const duration = 1500;
-  const start = performance.now();
+// ─── SCORE ANIMATION ──────────────────────────────────────
+function animateScore(target, label, colorClass) {
+  const circumference = 402.12; // 2π × 64
+  const duration      = 1500;
+  const start         = performance.now();
 
-  // Set verdict label
+  // Verdict label
   scoreLabel.textContent = label;
-  scoreLabel.className = `rsp-verdict ${colorClass}`;
-
-  // Score bar element
-  const scoreBar = document.getElementById("scoreBar");
-  // Ring pct text
-  const ringPct = document.getElementById("ringPct");
+  scoreLabel.className   = `score-stat-verdict ${colorClass}`;
 
   function step(now) {
-    const elapsed = now - start;
-    const progress = Math.min(elapsed / duration, 1);
-    const eased = easeOutCubic(progress);
+    const progress = Math.min((now - start) / duration, 1);
+    const eased    = easeOutCubic(progress);
+    const current  = Math.round(eased * target);
 
-    const current = Math.round(eased * targetScore);
     scoreNumber.textContent = current;
     if (ringPct) ringPct.textContent = `${current}%`;
 
-    // Animate score bar
-    if (scoreBar) scoreBar.style.width = `${eased * targetScore}%`;
-
-    // Animate ring
-    const offset = circumference - (eased * targetScore / 100) * circumference;
-    ringFill.style.strokeDashoffset = offset;
+    ringFill.style.strokeDashoffset =
+      circumference - (eased * target / 100) * circumference;
 
     if (progress < 1) requestAnimationFrame(step);
   }
@@ -289,27 +381,27 @@ function easeOutCubic(t) {
   return 1 - Math.pow(1 - t, 3);
 }
 
-// Render skill chips
-function renderChips(container, skills, chipClass, emptyMsg) {
+// ─── CHIPS ────────────────────────────────────────────────
+function renderChips(container, skills, cls, emptyMsg) {
   container.innerHTML = "";
   if (!skills || skills.length === 0) {
     const el = document.createElement("span");
-    el.className = "chip chip-empty";
+    el.className   = "chip chip-empty";
     el.textContent = emptyMsg;
     container.appendChild(el);
     return;
   }
   skills.forEach((skill, i) => {
     const chip = document.createElement("span");
-    chip.className = `chip ${chipClass}`;
+    chip.className = `chip ${cls}`;
     chip.textContent = skill;
-    chip.style.animationDelay = `${i * 40}ms`;
+    chip.style.animationDelay = `${i * 35}ms`;
     chip.setAttribute("role", "listitem");
     container.appendChild(chip);
   });
 }
 
-// Render section items
+// ─── SECTIONS ─────────────────────────────────────────────
 function renderSections(sections) {
   sectionsList.innerHTML = "";
   if (!sections || sections.length === 0) {
@@ -319,7 +411,7 @@ function renderSections(sections) {
   sections.forEach((sec, i) => {
     const item = document.createElement("div");
     item.className = "section-item";
-    item.style.animationDelay = `${i * 60}ms`;
+    item.style.animationDelay = `${i * 55}ms`;
     item.setAttribute("role", "listitem");
     item.innerHTML = `
       <span class="section-check">OK</span>
@@ -329,7 +421,7 @@ function renderSections(sections) {
   });
 }
 
-// Render suggestions
+// ─── SUGGESTIONS ──────────────────────────────────────────
 function renderSuggestions(suggestions) {
   suggestionsList.innerHTML = "";
   if (!suggestions || suggestions.length === 0) {
@@ -339,31 +431,28 @@ function renderSuggestions(suggestions) {
   suggestions.forEach((tip, i) => {
     const li = document.createElement("li");
     li.className = "suggestion-item";
-    li.style.animationDelay = `${i * 70}ms`;
+    li.style.animationDelay = `${i * 65}ms`;
     li.innerHTML = `
-      <span class="suggestion-num">${i + 1}</span>
+      <span class="suggestion-num">${String(i + 1).padStart(2, "0")}</span>
       <span>${tip}</span>
     `;
     suggestionsList.appendChild(li);
   });
 }
 
-// ─── RE-ANALYZE ───────────────────────────────────────────────────────────────
+// ─── RE-ANALYZE ───────────────────────────────────────────
 reanalyzeBtn.addEventListener("click", () => {
   resultsSection.classList.add("hidden");
-  // Reset file
   selectedFile = null;
   fileInput.value = "";
   filePreview.classList.add("hidden");
-  // Reset JD
   jdTextarea.value = "";
-  jdCounter.textContent = "0 words";
-  // Scroll to top
+  jdCounter.textContent = "0 WORDS";
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
 
-// ─── SMOOTH SCROLL ON LOAD ────────────────────────────────────────────────────
+// ─── INIT ─────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("🚀 Smart Resume Analyzer loaded");
-  console.log("📡 API endpoint:", ANALYZE_URL);
+  console.log("🌊 ResumeAI — Auros Edition loaded");
+  console.log("📡 API:", ANALYZE_URL);
 });
